@@ -1,4 +1,3 @@
-HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -36,9 +35,6 @@ build/
 # Ignore a single file
 .env
 
-# Ignore all .yml files in a folder
-#/config/*.yml
-
 # Ignore application-local.yml anywhere in the repo
 application-local.yml
 
@@ -51,7 +47,9 @@ logs/
 
 # Ignore uploads folder
 uploads/
-*.m*
+*.m4a
+*.m4p
+*.mp3
 
 
 # Ignore temporary files
