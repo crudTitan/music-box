@@ -1,0 +1,42 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/musicbox
+    driver-class-name: org.postgresql.Driver
+
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+logging:
+  file:
+    name: logs/musicbox.log
+  level:
+    root: INFO
+    com.boxclone.musicbox: DEBUG
+  logback:
+    rollingpolicy:
+      total-size-cap: 100MB
+      max-file-size: 10MB
+
+jwt:
+  expiration: 3600000
+
+storage:
+  user-quota-bytes: 524288000 # 500 MB
+  location: S3  # or S3
+
+aws:
+  s3:
+    bucket-name: aws-s3-musicbox-uswest1-bucket
+    region: us-west-1

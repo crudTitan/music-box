@@ -1,0 +1,164 @@
+// 📄 SongList.jsx
+import React, { useEffect, useState, useRef } from "react";
+import axios from "axios";
+
+export default function SongList({ songs, onLogin, onLogout, onUpload }) {
+  const [songs, setSongs] = useState([]);
+  const [currentSong, setCurrentSong] = useState(null);
+  const [uploadTarget, setUploadTarget] = useState("LOCAL");
+  const [uploadFile, setUploadFile] = useState(null);
+  const audioRef = useRef(null);
+  
+
+  const fetchSongs = async () => {
+    try {
+      const authToken = token || localStorage.getItem("token");
+      if (!authToken) {
+        console.warn("No auth token found.");
+        setLoading(false);
+        return;
+      }
+
+      const res = await axios.get("http://localhost:8080/api/songs/users", {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+
+      if (Array.isArray(res.data)) {
+        setSongs(res.data);
+      } else {
+        console.warn("Unexpected response:", res.data);
+        setSongs([]);
+      }
+    } catch (err) {
+      console.error("Error fetching songs:", err);
+      setSongs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Play song whenever currentSong changes
+  useEffect(() => {
+    if (currentSong && audioRef.current) {
+      console.info("🎵 Loading song:", currentSong);
+
+      const token = localStorage.getItem("jwt_token");
+      if (!token) {
+        console.error("❌ No JWT token found. User might not be logged in.");
+        return;
+      }
+
+      const streamUrl = `http://localhost:8080/api/songs/stream/${encodeURIComponent(
+        currentSong.fileName
+      )}?sourceStorageType=${currentSong.storageType}`;
+
+      console.info("📡 Fetching stream from:", streamUrl);
+
+      fetch(streamUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.blob();
+        })
+        .then((blob) => {
+          const objectUrl = URL.createObjectURL(blob);
+          audioRef.current.src = objectUrl;
+          console.info("✅ Audio src set:", objectUrl);
+
+          audioRef.current.load();
+          return audioRef.current.play();
+        })
+        .then(() => {
+          console.info("🎶 Playback started successfully.");
+        })
+        .catch((err) => {
+          console.error("⚠️ Playback failed:", err);
+        });
+    }
+  }, [currentSong]);
+
+  const handlePlay = (song) => {
+    console.info("▶️ Play clicked for:", song);
+    setCurrentSong(song);
+  };
+
+  const handleFileChange = (e) => {
+    setUploadFile(e.target.files[0]);
+  };
+
+  const handleUpload = () => {
+    if (!uploadFile) {
+      console.error("No file selected for upload.");
+      return;
+    }
+    const token = localStorage.getItem("jwt_token");
+    if (!token) {
+      console.error("No JWT token found. Cannot upload.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+
+    const uploadUrl = `http://localhost:8080/api/songs/upload?storageType=${uploadTarget}`;
+
+    console.info(`⬆️ Uploading to ${uploadTarget}:`, uploadFile.name);
+
+    fetch(uploadUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`Upload failed with status ${res.status}`);
+        console.info("✅ Upload successful!");
+        if (onUpload) onUpload(); // Refresh song list
+      })
+      .catch((err) => console.error("⚠️ Upload error:", err));
+  };
+
+  return (
+    <div style={{ padding: "1rem" }}>
+      {/* Auth Controls */}
+      <div style={{ marginBottom: "1rem" }}>
+        <button onClick={onLogin}>Login</button>
+        <button onClick={onLogout}>Logout</button>
+      </div>
+
+      {/* Upload Controls */}
+      <div style={{ marginBottom: "1rem" }}>
+        <input type="file" onChange={handleFileChange} />
+        <select
+          value={uploadTarget}
+          onChange={(e) => setUploadTarget(e.target.value)}
+        >
+          <option value="LOCAL">Local</option>
+          <option value="S3">S3</option>
+        </select>
+        <button onClick={handleUpload}>Upload</button>
+      </div>
+
+      {/* Song List */}
+      <ul>
+        {songs.map((song) => (
+          <li key={song.id}>
+            {song.title} - {song.artist}{" "}
+            <button onClick={() => handlePlay(song)}>Play</button>
+          </li>
+        ))}
+      </ul>
+
+      {/* Audio Player */}
+      <audio
+        ref={audioRef}
+        controls
+        style={{ marginTop: "1rem", width: "100%" }}
+      />
+    </div>
+  );
+}

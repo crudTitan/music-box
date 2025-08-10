@@ -1,0 +1,74 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+
+# Ignore a single file
+.env
+
+# Ignore all .yml files in a folder
+#/config/*.yml
+
+# Ignore application-local.yml anywhere in the repo
+application-local.yml
+
+# Ignore application-local.properties anywhere in the repo
+application-local.properties
+
+# Ignore logs folder
+logs/
+*.log
+
+# Ignore uploads folder
+uploads/
+*.m*
+
+
+# Ignore temporary files
+*.tmp
+
+# Ignore build output
+target/
+
+# OS-specific junk
+.DS_Store
+Thumbs.db
+
+
+
+# # → comment
+# *.ext → all files with that extension
+# /file → match only in the root folder
+# folder/ → ignore the entire folder
+# !pattern → negate (stop ignoring) a file
+
