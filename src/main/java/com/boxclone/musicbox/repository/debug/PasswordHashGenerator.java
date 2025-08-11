@@ -15,8 +15,5 @@ public class PasswordHashGenerator implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        System.out.println("changeme1 -> " + passwordEncoder.encode("changeme1"));
-        System.out.println("changeme2 -> " + passwordEncoder.encode("changeme2"));
-        System.out.println("changeme3 -> " + passwordEncoder.encode("changeme3"));
     }
 }

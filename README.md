@@ -5,11 +5,10 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-**Music Box** is a music library implemented with a web UI frontend and backend server built with **Java**, **Spring Boot**, and **PostgreSQL**.  
-It lets you upload, organize, and play your favorite songs, complete with album metadata details (date release, Artist
-Track, etc.). The **Java script** UI will register and login to the server getting a **JWT token**. 
-This token is used to list songs for the logged-in user. The user can then upload songs to the Spring server or **AWS** cloud. The user can then play the 
-songs they upload, and the song metadata is queried to get the precise artist, album, release date, Track, etc.
+**Music Box** is a music library implemented with a web UI frontend and backend server built with **Java**, **Spring Boot**, and **PostgreSQL**. It lets you upload, organize, and play your favorite songs, complete with album metadata details (date release, artist
+track, etc.). The **Java script** UI will register and login to the server getting a **JWT token**. This token is used to list songs for the logged-in user. The user can then upload songs to the Spring server or **AWS** cloud. The user can then play the 
+songs they upload, and the song metadata is queried to get the precise artist, album, release date, track, etc. The PostGreSQL database runs in a docker container. Credentials to the database are split out to a user unique application-local.yml, and 
+the AWS credentials are read from the AWS config file. This abstracts the logins and keeps any hard coded values out of this checked in code, but means to run this the developer will need to add their own application-local.yml file.
 
 ---
 
