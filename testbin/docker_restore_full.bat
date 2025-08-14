@@ -3,7 +3,7 @@
 @echo ===================================
 @echo Enter user:     %musicbox_usr%
 @echo Enter password: %musicbox_pwd%
-@echo ======================================
+@echo ===================================
 @echo.
 @echo Restore full sql content, schema, db constructs
 @echo on

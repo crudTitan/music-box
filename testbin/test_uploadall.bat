@@ -15,7 +15,7 @@ if not defined JWT_TOKEN (
 echo Token obtained (first 12 chars): !JWT_TOKEN:~0,12!...
 
 REM 2) Upload all files in the directory
-set "UPLOAD_DIR=D:\chris\mymusic\uploadSource"
+set "UPLOAD_DIR=%musicbox_upload_src%"
 set "STORAGE_TYPE=LOCAL"
 
 for %%F in ("%UPLOAD_DIR%\*") do (
