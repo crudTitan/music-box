@@ -1,6 +1,11 @@
 package com.boxclone.musicbox.service.Impl;
 
+import com.boxclone.musicbox.dto.SongDto;
+import com.boxclone.musicbox.entity.SongEntity;
+import com.boxclone.musicbox.entity.StorageType;
+import com.boxclone.musicbox.repository.SongRepository;
 import com.boxclone.musicbox.service.SongStreamService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,42 +17,103 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class SongStreamServiceImpl implements SongStreamService {
 
 
+    private final SongRepository songRepository;
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
-    public void streamSong(String filename, String authName,
-                           HttpServletResponse response, String sourceStorageType) throws IOException {
-        if ("S3".equalsIgnoreCase(sourceStorageType)) {
-            streamFromS3(filename, authName, response);
-        } else {
-            streamFromLocal(filename, authName, response);
+//    // TODO: this may be obsolete?
+//    public void streamSong(String filename, String authName,
+//                           HttpServletResponse response, String sourceStorageType) throws IOException {
+//        if ("S3".equalsIgnoreCase(sourceStorageType)) {
+//            streamFromS3(filename, authName, response);
+//        } else {
+//            streamFromLocal(filename, authName, response);
+//        }
+//    }
+
+    @Override
+    public SongDto streamSong(Long id, String name,
+                              HttpServletRequest request,
+                              HttpServletResponse response) throws IOException {
+        Optional<SongEntity> song = songRepository.findById(id);
+        if (song.isEmpty()) {
+            throw new IOException("Failed to find song with id: " + id);
         }
+
+        if (StorageType.S3.equals(song.get().getStorageType())) {
+            streamFromS3(song.get().getStorageLocationPath(), song.get().getArtist(), response);
+        } else {
+            streamFromLocal(song.get().getStorageLocationPath(), song.get().getArtist(), request, response);
+        }
+
+        return song.get().toDto(); // TODO: use get mapping?
     }
 
-    public void streamFromLocal(String filename, String authName, HttpServletResponse response) throws IOException {
-        Path filePath = Paths.get("uploads", authName, filename);
+    public void streamFromLocal(String filename, String artistName,
+                                HttpServletRequest request,
+                                HttpServletResponse response) throws IOException {
+        Path filePath = Paths.get(filename);
         if (!Files.exists(filePath)) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
 
-        response.setContentType(Files.probeContentType(filePath));
-        response.setHeader("Content-Disposition", "inline; filename=\"" + filename + "\"");
+        String mimeType = Files.probeContentType(filePath);
+        if (mimeType == null) {
+            mimeType = "application/octet-stream";
+        }
 
-        try (InputStream in = Files.newInputStream(filePath);
+        long fileLength = Files.size(filePath);
+        String rangeHeader = request.getHeader("Range");
+        response.setHeader("Accept-Ranges", "bytes");
+        response.setHeader("Content-Disposition", "inline; filename=\"" + filename + "\"");
+        response.setContentType(mimeType);
+
+        try (RandomAccessFile randomFile = new RandomAccessFile(filePath.toFile(), "r");
              OutputStream out = response.getOutputStream()) {
-            in.transferTo(out);
+
+            if (rangeHeader != null) {
+                // Example: "Range: bytes=500-999"
+                long start = 0, end = fileLength - 1;
+                String[] ranges = rangeHeader.replace("bytes=", "").split("-");
+                if (!ranges[0].isEmpty()) start = Long.parseLong(ranges[0]);
+                if (ranges.length > 1 && !ranges[1].isEmpty()) end = Long.parseLong(ranges[1]);
+
+                long contentLength = end - start + 1;
+                response.setStatus(HttpServletResponse.SC_PARTIAL_CONTENT);
+                response.setHeader("Content-Range", "bytes " + start + "-" + end + "/" + fileLength);
+                response.setHeader("Content-Length", String.valueOf(contentLength));
+
+                randomFile.seek(start);
+                byte[] buffer = new byte[8192];
+                long bytesRemaining = contentLength;
+                int bytesRead;
+                while ((bytesRead = randomFile.read(buffer)) != -1 && bytesRemaining > 0) {
+                    out.write(buffer, 0, (int) Math.min(bytesRead, bytesRemaining));
+                    bytesRemaining -= bytesRead;
+                }
+            } else {
+                // Full file
+                response.setHeader("Content-Length", String.valueOf(fileLength));
+                randomFile.seek(0);
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = randomFile.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            }
         }
     }
 

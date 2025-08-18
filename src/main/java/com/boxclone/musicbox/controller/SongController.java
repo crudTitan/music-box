@@ -11,6 +11,7 @@ import com.boxclone.musicbox.service.Impl.LocalFileStorageService;
 import com.boxclone.musicbox.service.Impl.S3FileStorageService;
 import com.boxclone.musicbox.service.SongService;
 import com.boxclone.musicbox.service.SongStreamService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
@@ -134,21 +135,14 @@ public class SongController {
     }
 
 
-
-    @GetMapping("/stream/{filename}")
+    @GetMapping("/stream/{id}")
     @PreAuthorize("hasRole('USER')")
-    public void stream(@PathVariable String filename,
-                       @RequestParam(defaultValue = "LOCAL") String storageType,
+    public void stream(@PathVariable Long id,
                        Authentication auth,
+                       HttpServletRequest request,
                        HttpServletResponse response) throws IOException {
-
-        response.setContentType("audio/mpeg");
-        response.setHeader("Content-Disposition", "inline; filename=\"" + filename + "\"");
-
-        songStreamService.streamSong(filename, auth.getName(), response, storageType);
+        songStreamService.streamSong(id, auth.getName(), request, response);
     }
-
-
 
 }
 

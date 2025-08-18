@@ -69,8 +69,8 @@ export default function SongList({token, onLogout}) {
         }
     };
 
-
-    const handlePlay = (song) => {
+    // // version 4
+    const handlePlay = async (song) => {
         console.info("start handlePlay:", song);
 
         if (!audioRef.current) {
@@ -78,31 +78,35 @@ export default function SongList({token, onLogout}) {
             return;
         }
 
-        console.info("audioRef.current before play:", audioRef.current);
-        console.info("current src before play:", audioRef.current.src);
+        setCurrentSong(song); // Update the UI with the current song
 
-        // Build URL for streaming endpoint
-        const token = localStorage.getItem("jwt_token"); // or wherever you store it
-        const streamUrl = `http://localhost:8080/api/songs/stream/${encodeURIComponent(song.fileName)}?sourceStorageType=${song.storageType}`;
+        const token = localStorage.getItem("token");
+        if (!token) {
+            console.warn("No JWT token found.");
+            return;
+        }
 
-        // Attach src with auth token (via query param or fetch)
-        // If using fetch with Bearer token, need blob -> object URL
-        fetch(streamUrl, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((res) => res.blob())
-            .then((blob) => {
-                const audioUrl = URL.createObjectURL(blob);
-                audioRef.current.src = audioUrl;
-                audioRef.current.load();
-                audioRef.current.play();
-            })
-            .catch((err) => {
-                console.error("Error streaming song:", err);
+        const streamUrl = `http://localhost:8080/api/songs/stream/${song.id}`;
+
+        try {
+            const res = await fetch(streamUrl, {
+                headers: { Authorization: `Bearer ${token}` },
             });
+
+            if (!res.ok) throw new Error(`Failed to fetch audio: ${res.statusText}`);
+
+            const blob = await res.blob();
+            const audioUrl = URL.createObjectURL(blob);
+
+            audioRef.current.src = audioUrl;
+            audioRef.current.load();
+            await audioRef.current.play();
+            console.info("Playback started for:", song.title);
+        } catch (err) {
+            console.error("Playback failed:", err);
+        }
     };
+
 
 
     const handleLogout = () => {
@@ -142,16 +146,21 @@ export default function SongList({token, onLogout}) {
             )}
             {!loading && songs.length === 0 && <p>No songs available</p>}
 
+            {/*/!* Audio Player *!/*/}
+            {/*{currentSong && (*/}
+            {/*    <div style={{marginTop: "10px"}}>*/}
+            {/*        <p>Now Playing: {currentSong.title}</p>*/}
+            {/*        <audio ref={audioRef} controls>*/}
+            {/*            <source src={currentSong.url} type="audio/mpeg"/>*/}
+            {/*            Your browser does not support the audio element.*/}
+            {/*        </audio>*/}
+            {/*    </div>*/}
+            {/*)}*/}
+
             {/* Audio Player */}
-            {currentSong && (
-                <div style={{marginTop: "10px"}}>
-                    <p>Now Playing: {currentSong.title}</p>
-                    <audio ref={audioRef} controls>
-                        <source src={currentSong.url} type="audio/mpeg"/>
-                        Your browser does not support the audio element.
-                    </audio>
-                </div>
-            )}
+            <audio ref={audioRef} controls style={{ width: "100%", marginTop: "10px" }} />
+            {currentSong && <p>Now Playing: {currentSong.title}</p>}
+
 
 
             {/* Upload Section */}

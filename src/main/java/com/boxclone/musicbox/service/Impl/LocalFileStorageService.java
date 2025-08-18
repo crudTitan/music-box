@@ -1,5 +1,6 @@
 package com.boxclone.musicbox.service.Impl;
 
+import com.boxclone.musicbox.config.MboxUtility;
 import com.boxclone.musicbox.config.StorageProperties;
 import com.boxclone.musicbox.dto.SongDto;
 import com.boxclone.musicbox.entity.AlbumEntity;
@@ -115,16 +116,7 @@ public class LocalFileStorageService implements FileStorageService {
                     targetFile.getTotalSpace(), targetFile.length()  );
 
             String filePath = targetFile.getPath();
-            int dotIndex = targetFile.getPath().lastIndexOf('.');
-            String extension = (dotIndex == -1) ? "" : filePath.substring(dotIndex + 1);
-            String msg = "Unsupported file format: " + extension;
-            if (!"mp3".equals(extension) && !"m4a".equals(extension)) {
-                log.debug("Unsupported file format: {}", extension);
-                if ("m4p".equals(extension))
-                    throw new FileNotFoundException(msg + " Upload failed: DRM-protected .m4p files are not supported. Please use DRM-free formats like .mp3 or .m4a.");
-                throw new FileNotFoundException(msg);
-            }
-
+            String extension = MboxUtility.getFileExtension( filePath, true );
             Tag tag = audioFile.getTag();
 
             String title = tag.getFirst(org.jaudiotagger.tag.FieldKey.TITLE);

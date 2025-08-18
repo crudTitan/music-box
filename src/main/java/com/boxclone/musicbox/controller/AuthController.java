@@ -7,11 +7,13 @@ import com.boxclone.musicbox.entity.UserEntity;
 import com.boxclone.musicbox.repository.RoleRepository;
 import com.boxclone.musicbox.repository.UserRepository;
 import com.boxclone.musicbox.security.JwtTokenProvider;
+import com.boxclone.musicbox.service.SpotifyAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
@@ -45,6 +47,9 @@ public class AuthController {
     private final RoleRepository roleRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private SpotifyAuthService spotifyAuthService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request) {
@@ -109,6 +114,30 @@ public class AuthController {
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(HttpServletRequest request) {
         // JwtTokenFilter would normally already run here before this method
-        return ResponseEntity.ok().build(); // 200 means valid
+        //return ResponseEntity.ok().build(); // 200 means valid
+        return ResponseEntity.ok("Validated"); // 200 means valid
     }
+
+
+
+    @GetMapping("/login/oauth2/spotify")
+    public ResponseEntity<String> loginSpotify(
+            @RequestParam(name = "code", required = false) String code,
+            @RequestParam(name = "error", required = false) String error) {
+
+        if (error != null) {
+            return ResponseEntity.badRequest().body("Spotify error: " + error);
+        }
+
+        if (code == null) {
+            return ResponseEntity.badRequest().body("No authorization code provided");
+        }
+
+        // Exchange code for access & refresh tokens
+        String jwtToken = spotifyAuthService.exchangeCodeForToken(code);
+
+        // Return JWT to frontend
+        return ResponseEntity.ok(jwtToken);
+    }
+
 }
